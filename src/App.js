@@ -1,6 +1,6 @@
 import React from 'react'
 import {BrowserRouter, Routes, Route} from 'react-router-dom'
-import {Box} from '@mui/material'
+import {Box} from '@mui/material';
 
 import{Feed,Navbar,VideoDetail,ChannelDetail,SearchFeed} from './components'
 
