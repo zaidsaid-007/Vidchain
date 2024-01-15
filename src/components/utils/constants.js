@@ -13,7 +13,7 @@ import TheaterComedyIcon from '@mui/icons-material/TheaterComedy';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import DeveloperModeIcon from '@mui/icons-material/DeveloperMode';
 
-export const logo = 'https://drive.google.com/file/d/1Z7BusFar31h1vyejeguPOEmfQk98PvRX/view?usp=drive_link';
+export const logo = require('./vidc.png');
 
 export const categories = [
   { name: 'New', icon: <HomeIcon />, },
