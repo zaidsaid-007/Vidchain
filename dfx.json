@@ -1,0 +1,26 @@
+{
+  "canisters": {
+    "vidchain_backend": {
+      "main": "src/vidchain_backend/main.mo",
+      "type": "motoko"
+    },
+    "vidchain_frontend": {
+      "dependencies": [
+        "vidchain_backend"
+      ],
+      "source": [
+        "src/vidchain_frontend/dist"
+      ],
+      "type": "assets",
+      "workspace": "vidchain_frontend"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
