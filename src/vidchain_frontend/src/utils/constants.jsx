@@ -11,8 +11,9 @@ import GraphicEqIcon from "@mui/icons-material/GraphicEq";
 import TheaterComedyIcon from "@mui/icons-material/TheaterComedy";
 import FitnessCenterIcon from "@mui/icons-material/FitnessCenter";
 import DeveloperModeIcon from "@mui/icons-material/DeveloperMode";
+import logo1  from "../logo1.png";
 
-export const logo = "/src/VC.png";
+export const logo = logo1;
 
 export const categories = [
   { name: "New", icon: <HomeIcon /> },
