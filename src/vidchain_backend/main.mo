@@ -28,7 +28,7 @@ actor VidChain {
     #Other;
   };
 
-  // Define Playlist as needed
+  
   public type Playlist = {
     id : Nat;
     name : Text;
@@ -87,8 +87,7 @@ actor VidChain {
     mintDate : Int;
   };
 
-  // Update UserProfile so that it’s stable.
-  // Note: since HashMap isn’t a stable type, we store playlists as an array of (Text, Playlist) tuples.
+
   public type UserProfile = {
     principal : Principal;
     name : Text;
@@ -168,7 +167,7 @@ actor VidChain {
           gender = profile.gender;
           birthday = profile.birthday;
           totalWatchTime = 0;
-          playlists = []; // empty playlists array
+          playlists = []; 
           channelName = "";
           totalViews = 0;
           totalVideos = 0;
@@ -342,9 +341,6 @@ actor VidChain {
     };
   };
 
-  public shared func likeVideo(videoId : VideoId) : async Result.Result<(), Error> {
-    return #ok(()); //  TODO: Implement logic to update like count in storage
-  };
 
   public shared query func getBalance() : async Result.Result<Nat, Error> {
     return #ok(1000); // TODO:  fetch user balance
@@ -452,6 +448,103 @@ actor VidChain {
       };
     };
   };
+
+  // ========== VIDEO QUERY METHODS ==========
+public query func getAllVideos() : async [Video] {
+  List.toArray(
+    List.filter<Video>(videos, func(v : Video) : Bool { not v.isDeleted })
+  );
+};
+
+public query func getVideoById(videoId : VideoId) : async ?Video {
+  findVideo(videoId);
+};
+
+public shared ({ caller }) func likeVideo(videoId : VideoId) : async Result.Result<(), Error> {
+  switch (findVideo(videoId)) {
+    case null { #err(#VideoNotFound) };
+    case (?video) {
+      videos := List.map<Video, Video>(
+        videos,
+        func(v : Video) : Video {
+          if (v.id == videoId) {
+            { v with likes = v.likes + 1 }  
+          } else {
+            v
+          }
+        }
+      );
+      #ok(());
+    }
+  }
+};
+
+public shared ({ caller }) func dislikeVideo(videoId : VideoId) : async Result.Result<(), Error> {
+  switch (findVideo(videoId)) {
+    case null { #err(#VideoNotFound) };
+    case (?video) {
+      videos := List.map<Video, Video>(
+        videos,
+        func(v : Video) : Video {
+          if (v.id == videoId) {
+            { v with dislikes = v.dislikes + 1 }  
+          } else {
+            v
+          }
+        }
+      );
+      #ok(());
+    }
+  }
+};
+
+// ========== COMMENT SYSTEM ==========
+public query func getComments(videoId : VideoId) : async [Comment] {
+  switch (findVideo(videoId)) {
+    case null { [] };
+    case (?video) { List.toArray(video.comments) };
+  };
+};
+
+// ========== USER-SPECIFIC QUERIES ==========
+public query func getUserVideos(user : Principal) : async [Video] {
+  List.toArray(
+    List.filter<Video>(
+      videos,
+      func(v : Video) : Bool {
+        v.uploader == user and not v.isDeleted
+      }
+    )
+  );
+};
+
+public query func getUserProfile(principal : Principal) : async ?UserProfile {
+  userProfiles.get(principal);
+};
+
+public query func getPlaylists(user : Principal) : async [Playlist] {
+  switch (userProfiles.get(user)) {
+    case null { [] };
+    case (?profile) { 
+      Array.map<(Text, Playlist), Playlist>(
+        profile.playlists,
+        func((_, p) : (Text, Playlist)) : Playlist { p }
+      )
+    };
+  };
+};
+
+// ========== CATEGORY BROWSING ==========
+public query func getVideosByCategory(category : Category) : async [Video] {
+  List.toArray(
+    List.filter<Video>(
+      videos,
+      func(v : Video) : Bool {
+        not v.isDeleted and v.category == category
+      }
+    )
+  );
+};
 
   // ========== HELPER FUNCTIONS ==========
   private func findVideo(videoId : VideoId) : ?Video {

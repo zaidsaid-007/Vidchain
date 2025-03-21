@@ -8,18 +8,17 @@ import {
   InputLabel, 
   CircularProgress, 
   Grid, 
-  Button, 
-  TextField 
+  Button 
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import { BarChart, XAxis, YAxis, Tooltip, Bar } from "recharts";
 import { canisterId, createActor } from "../../../declarations/vidchain_backend";
 import MainLayout from "../components/MainLayout";
+import { useAuth } from "../Auth/AuthContext";
+import { Principal } from "@dfinity/principal";
 
-// Create the actor instance (same as in UploadPage)
 const vidChainActor = createActor(canisterId);
 
-// A simple component to render each video with options.
 const VideoItem = ({ video, onDelete, onUpdate }) => {
   return (
     <Box 
@@ -61,30 +60,50 @@ const VideoItem = ({ video, onDelete, onUpdate }) => {
 };
 
 const ChannelPage = () => {
-  const { channelId } = useParams();
+  // Extract the 'id' parameter from the URL; your route is defined as '/channel/:id'
+  const { id } = useParams();
+  // Get current authenticated user's principal as a fallback
+  const { principal: currentPrincipal } = useAuth();
+  // Use the URL parameter if available; otherwise, fallback to the current user's principal
+  const channelId = id || currentPrincipal;
+
   const [analytics, setAnalytics] = useState(null);
   const [videos, setVideos] = useState([]);
   const [timeRange, setTimeRange] = useState("month");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load channel analytics and videos.
   const loadData = async () => {
     setLoading(true);
     setError(null);
+
+    if (!channelId) {
+      setError("Invalid channel id. Please check the URL or ensure you are logged in.");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // For analytics, we assume the channelId is also the uploader principal.
-      const analyticsData = await vidChainActor.getChannelAnalytics(channelId);
-      // Using searchVideos with an empty search text to return all videos.
+      // Optionally, convert channelId to a Principal if needed:
+      // const channelPrincipal = Principal.fromText(channelId);
+      const channelPrincipal = channelId; // If your backend accepts a string
+
+      // Fetch analytics data for the given channel.
+      const analyticsData = await vidChainActor.getChannelAnalytics(channelPrincipal);
+      
+      // Retrieve all videos using searchVideos.
       const searchResults = await vidChainActor.searchVideos("", null);
-      // Filter the videos to include only those whose channel equals channelId.
-      // (You may need to adjust this logic depending on how your videos are organized.)
-      const channelVideos = searchResults.filter(video => video.channel === channelId);
+      
+      // Filter videos where the uploader matches the channel.
+      const channelVideos = searchResults.filter(video => 
+        video.uploader === channelPrincipal || video.uploader === channelId
+      );
+      
       setAnalytics(analyticsData);
       setVideos(channelVideos);
     } catch (err) {
-      setError("Failed to load channel data.");
       console.error(err);
+      setError("Failed to load channel data.");
     } finally {
       setLoading(false);
     }
@@ -92,7 +111,7 @@ const ChannelPage = () => {
 
   useEffect(() => {
     loadData();
-  }, [channelId, timeRange]);
+  }, [id, timeRange, currentPrincipal]);
 
   // Delete a video.
   const handleDelete = async (videoId) => {
@@ -110,8 +129,7 @@ const ChannelPage = () => {
     }
   };
 
-  // Update video details (for demonstration, we update the title).
-  // Note: You must implement a corresponding updateVideo method in your canister.
+  // Update video details.
   const handleUpdate = async (videoId, newDetails) => {
     try {
       const result = await vidChainActor.updateVideo(videoId, newDetails);
@@ -170,6 +188,15 @@ const ChannelPage = () => {
                   <Tooltip />
                   <Bar dataKey="views" fill="#8884d8" />
                 </BarChart>
+              )}
+              {analytics && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography>Total Views: {analytics.totalViews}</Typography>
+                  <Typography>Total Videos: {analytics.totalVideos}</Typography>
+                  <Typography>
+                    Avg. Watch Time: {analytics.avgWatchTime.toFixed(2)} seconds
+                  </Typography>
+                </Box>
               )}
             </Grid>
 
